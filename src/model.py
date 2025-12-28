@@ -7,12 +7,13 @@ import logging
 import numpy as np
 import tensorflow as tf
 import tensorflow.contrib.slim as slim
-
 from tensorflow.contrib.data import shuffle_and_repeat, map_and_batch
+from tqdm import tqdm
 
 from src.archs import discriminator, generator, vgg_16
 from scipy.misc import imsave
-from src.data_loader import ImageData
+# from src.data_loader import ImageData
+from src.magia_data_loader import ImageData
 from utils.ops import l1_loss, content_loss, style_loss, angular_error
 
 
@@ -309,7 +310,7 @@ class Model(object):
 
             try:
 
-                for epoch in range(num_epoch):
+                for epoch in tqdm(range(num_epoch), desc="Epoch", position=0):
 
                     print("Epoch: %d" % epoch)
 
@@ -317,14 +318,17 @@ class Model(object):
 
                         learning_rate = (2. - 2. * epoch / hps.epochs) * hps.lr
 
-                    for it in range(num_iter):
+                    pbar = tqdm(range(num_iter), desc="Iter", position=1, leave=False)
+                    for it in pbar:
 
                         feed_d = {self.lr: learning_rate}
 
-                        sess.run([self.d_op], feed_dict=feed_d)
+                        _, d_loss = sess.run([self.d_op, self.d_loss], feed_dict=feed_d)
 
                         if it % 5 == 0:
-                            sess.run(self.g_op, feed_dict=feed_d)
+                            _, g_loss = sess.run([self.g_op, self.g_loss], feed_dict=feed_d)
+                        
+                        pbar.set_postfix(d_loss=d_loss, g_loss=g_loss)
 
                         if it % hps.summary_steps == 0:
 
