@@ -12,3 +12,11 @@ dataset/
 dataset.tar
 */.ropeproject/
 .vscode/
+test.py
+vgg_16_2016_08_28.tar.gz
+cudnn-9.0-linux-x64-v7.tgz
+vgg_16.ckpt
+cuda
+data
+.conda/
+log
