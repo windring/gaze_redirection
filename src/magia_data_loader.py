@@ -114,7 +114,7 @@ class ImageData(object):
 
         df = pd.read_csv(metadata_file)
         df["subject_id"] = df["subject_id"].astype(int)
-        df.loc[df["eye_type"] == "right", "yaw"] = -df.loc[df["eye_type"] == "right", "yaw"]
+        # df.loc[df["eye_type"] == "right", "yaw"] = -df.loc[df["eye_type"] == "right", "yaw"]
 
         df_grouped = df.groupby(["subject_id", "eye_type", "split"])
         for (subject_id, eye_type, split), group in tqdm(df_grouped):
@@ -135,17 +135,17 @@ class ImageData(object):
 
                     if split == "train":
                         self.train_images.append(str(image_reference_path))
-                        self.train_angles_r.append([pitch_reference, yaw_reference])
+                        self.train_angles_r.append([yaw_reference, pitch_reference])
                         self.train_labels.append(subject_id - 1)
                         self.train_images_t.append(str(image_generated_path))
-                        self.train_angles_g.append([pitch_generated, yaw_generated])
+                        self.train_angles_g.append([yaw_generated, pitch_generated])
                     
                     if split == "test":
                         self.test_images.append(str(image_reference_path))
-                        self.test_angles_r.append([pitch_reference, yaw_reference])
+                        self.test_angles_r.append([yaw_reference, pitch_reference])
                         self.test_labels.append(subject_id - 1)
                         self.test_images_t.append(str(image_generated_path))
-                        self.test_angles_g.append([pitch_generated, yaw_generated])
+                        self.test_angles_g.append([yaw_generated, pitch_generated])
                     
 
 if __name__ == "__main__":
