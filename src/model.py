@@ -11,7 +11,7 @@ from tensorflow.contrib.data import shuffle_and_repeat, map_and_batch
 from tqdm import tqdm
 
 from src.archs import discriminator, generator, vgg_16
-from scipy.misc import imsave
+from PIL import Image
 # from src.data_loader import ImageData
 from src.magia_data_loader import ImageData
 from utils.ops import l1_loss, content_loss, style_loss, angular_error
@@ -372,6 +372,19 @@ class Model(object):
                 os.makedirs(gene_dir)
                 os.makedirs(real_dir)
 
+                def save_image_png(img_array, filepath):
+                    """Save image in PNG format (lossless).
+                    
+                    Args:
+                        img_array: numpy array with values in [-1, 1] range, shape (H, W, C)
+                        filepath: path to save the image
+                    """
+                    # Convert from [-1, 1] to [0, 255]
+                    img_array = ((img_array + 1.0) * 127.5).clip(0, 255).astype(np.uint8)
+                    # Convert to PIL Image and save as PNG
+                    img_pil = Image.fromarray(img_array)
+                    img_pil.save(filepath, format='PNG')
+                
                 try:
                     i = 0
                     while True:
@@ -384,21 +397,10 @@ class Model(object):
                         delta = angular_error(a_t, a_r)
 
                         for j in range(real_imgs.shape[0]):
-                            imsave(os.path.join(
-                                tar_dir,
-                                '%d_%d_%.3f_H%d_V%d.jpg' % (
-                                    i, j, delta[j], a_t[j][0],
-                                    a_t[j][1])), target_imgs[j])
-                            imsave(os.path.join(
-                                gene_dir,
-                                '%d_%d_%.3f_H%d_V%d.jpg' % (
-                                    i, j, delta[j], a_t[j][0],
-                                    a_t[j][1])), fake_imgs[j])
-                            imsave(os.path.join(
-                                real_dir,
-                                '%d_%d_%.3f_H%d_V%d.jpg' % (
-                                    i, j, delta[j], a_t[j][0],
-                                    a_t[j][1])), real_imgs[j])
+                            fn = f"[batch_idx={i}][sample_idx={j}][yaw={int(a_t[j][0])}][pitch={int(a_t[j][1])}][error={delta[j]}].png"
+                            save_image_png(target_imgs[j], os.path.join(tar_dir, fn))
+                            save_image_png(fake_imgs[j], os.path.join(gene_dir, fn))
+                            save_image_png(real_imgs[j], os.path.join(real_dir, fn))
 
                         i = i + 1
                 except tf.errors.OutOfRangeError:
