@@ -384,20 +384,20 @@ class Model(object):
                     # Convert to PIL Image and save as PNG
                     img_pil = Image.fromarray(img_array)
                     img_pil.save(filepath, format='PNG')
-                
+
                 try:
                     i = 0
                     while True:
                         (real_imgs, target_imgs, fake_imgs,
-                         a_r, a_t) = test_sess.run(
+                         a_r, a_t, labels_test) = test_sess.run(
                             [self.x_test_r, self.x_test_t, x_fake,
-                             self.angles_test_r, self.angles_test_g])
+                             self.angles_test_r, self.angles_test_g, self.labels_test])
                         a_t = a_t * np.array([15, 10])
                         a_r = a_r * np.array([15, 10])
                         delta = angular_error(a_t, a_r)
 
                         for j in range(real_imgs.shape[0]):
-                            fn = f"[batch_idx={i}][sample_idx={j}][yaw={int(a_t[j][0])}][pitch={int(a_t[j][1])}][error={delta[j]}].png"
+                            fn = f"[subject_id={labels_test[j]+1}][origin_yaw={int(a_r[j][0])}][origin_pitch={int(a_r[j][1])}][target_yaw={int(a_t[j][0])}][target_pitch={int(a_t[j][1])}].png"
                             save_image_png(target_imgs[j], os.path.join(tar_dir, fn))
                             save_image_png(fake_imgs[j], os.path.join(gene_dir, fn))
                             save_image_png(real_imgs[j], os.path.join(real_dir, fn))

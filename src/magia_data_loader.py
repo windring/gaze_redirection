@@ -117,6 +117,7 @@ class ImageData(object):
         # df.loc[df["eye_type"] == "right", "yaw"] = -df.loc[df["eye_type"] == "right", "yaw"]
 
         df_grouped = df.groupby(["subject_id", "eye_type", "split"])
+
         for (subject_id, eye_type, split), group in tqdm(df_grouped):
             len_group = len(group)
             logger.info(f"len_group: {len_group}")
@@ -141,12 +142,15 @@ class ImageData(object):
                         self.train_angles_g.append([yaw_generated, pitch_generated])
                     
                     if split == "test":
+                        if image_reference_path == image_generated_path:
+                            continue
+
                         self.test_images.append(str(image_reference_path))
                         self.test_angles_r.append([yaw_reference, pitch_reference])
                         self.test_labels.append(subject_id - 1)
                         self.test_images_t.append(str(image_generated_path))
                         self.test_angles_g.append([yaw_generated, pitch_generated])
-                    
+
 
 if __name__ == "__main__":
     ImageData(load_size=64, channels=3).preprocess()
