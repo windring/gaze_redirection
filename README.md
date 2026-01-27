@@ -66,3 +66,12 @@ python main.py --mode eval --data_path ./dataset/0P/ --log_dir ./log/ --batch_si
 ```
 
 Then, a folder named **eval** will be generated in folder **./log/**. Generated images, input images and target images will be stored in **eval/**.
+
+
+## Scripts
+
+```
+CUDA_VISIBLE_DEVICES=1 DATA_ROOT="/home/18T/zhouhao/magia_gagen/EyeGazeRedirection/data/columbia/64x64" python main.py --mode train --data_path ./dataset/all/ --log_dir "log/64x64" --batch_size 64 --vgg_path ./vgg_16.ckpt
+CUDA_VISIBLE_DEVICES=6 DATA_ROOT="/home/18T/zhouhao/magia_gagen/EyeGazeRedirection/data/columbia/128x128" python main.py --mode train --data_path ./dataset/all/ --log_dir "log/128x128" --batch_size 64 --vgg_path ./vgg_16.ckpt --image_size 128
+CUDA_VISIBLE_DEVICES=7 DATA_ROOT="/home/18T/zhouhao/magia_gagen/EyeGazeRedirection/data/columbia/256x256" python main.py --mode train --data_path ./dataset/all/ --log_dir "log/256x256" --batch_size 64 --vgg_path ./vgg_16.ckpt --image_size 256
+```

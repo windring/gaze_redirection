@@ -18,7 +18,7 @@ class ImageData(object):
             channels,
             data_path, # useless
             ids, # useless
-            root_path: Path=Path("/home/18T/zhouhao/magia_gagen/EyeGazeRedirection/data/columbia/processed/"),
+            root_path: Path=Path(os.environ["DATA_ROOT"]),
             metadata_path: Path=Path("metadata.csv"),
             pitch_scale: float=10.0,
             yaw_scale: float=15.0
