@@ -53,7 +53,7 @@ if params.mode == 'train':
     if not os.path.exists(params.log_dir):
         os.mkdir(params.log_dir)
     else:
-        raise FileExistsError("log_dir is not empty!")
+        raise FileExistsError("log_dir is existed!")
     model.train()
 
 elif params.mode == 'eval':
