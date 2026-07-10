@@ -41,13 +41,13 @@ class Model(object):
 
         # building graph
         (self.x_r, self.angles_r, self.labels, self.x_t,
-         self.angles_g) = self.train_iter.get_next()
+         self.angles_g, self.sides) = self.train_iter.get_next()
 
         (self.x_valid_r, self.angles_valid_r, self.labels_valid,
-         self.x_valid_t, self.angles_valid_g) = self.valid_iter.get_next()
+         self.x_valid_t, self.angles_valid_g, self.sides_valid) = self.valid_iter.get_next()
 
         (self.x_test_r, self.angles_test_r, self.labels_test,
-         self.x_test_t, self.angles_test_g) = self.test_iter.get_next()
+         self.x_test_t, self.angles_test_g, self.sides_test) = self.test_iter.get_next()
 
         self.x_g = generator(self.x_r, self.angles_g)
         self.x_recon = generator(self.x_g, self.angles_r, reuse=True)
@@ -97,13 +97,15 @@ class Model(object):
              image_data_class.train_angles_r,
              image_data_class.train_labels,
              image_data_class.train_images_t,
-             image_data_class.train_angles_g))
+             image_data_class.train_angles_g,
+             image_data_class.train_sides))
         test_dataset = tf.data.Dataset.from_tensor_slices(
             (image_data_class.test_images,
              image_data_class.test_angles_r,
              image_data_class.test_labels,
              image_data_class.test_images_t,
-             image_data_class.test_angles_g))
+             image_data_class.test_angles_g,
+             image_data_class.test_sides))
 
         train_dataset = train_dataset.apply(
             shuffle_and_repeat(train_dataset_num)).apply(
@@ -389,15 +391,16 @@ class Model(object):
                     i = 0
                     while True:
                         (real_imgs, target_imgs, fake_imgs,
-                         a_r, a_t, labels_test) = test_sess.run(
+                         a_r, a_t, labels_test, sides_test) = test_sess.run(
                             [self.x_test_r, self.x_test_t, x_fake,
-                             self.angles_test_r, self.angles_test_g, self.labels_test])
+                             self.angles_test_r, self.angles_test_g, self.labels_test,
+                             self.sides_test])
                         a_t = a_t * np.array([15, 10])
                         a_r = a_r * np.array([15, 10])
                         delta = angular_error(a_t, a_r)
 
                         for j in range(real_imgs.shape[0]):
-                            fn = f"[subject_id={labels_test[j]+1}][origin_yaw={int(a_r[j][0])}][origin_pitch={int(a_r[j][1])}][target_yaw={int(a_t[j][0])}][target_pitch={int(a_t[j][1])}].png"
+                            fn = f"[subject_id={labels_test[j]+1}][ref_side={sides_test[j].decode()}][origin_yaw={int(a_r[j][0])}][origin_pitch={int(a_r[j][1])}][target_yaw={int(a_t[j][0])}][target_pitch={int(a_t[j][1])}].png"
                             save_image_png(target_imgs[j], os.path.join(tar_dir, fn))
                             save_image_png(fake_imgs[j], os.path.join(gene_dir, fn))
                             save_image_png(real_imgs[j], os.path.join(real_dir, fn))

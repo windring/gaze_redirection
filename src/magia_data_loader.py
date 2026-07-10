@@ -47,12 +47,14 @@ class ImageData(object):
         self.train_labels = []
         self.train_images_t = []
         self.train_angles_g = []
+        self.train_sides = []
 
         self.test_images = []
         self.test_angles_r = []
         self.test_labels = []
         self.test_images_t = []
         self.test_angles_g = []
+        self.test_sides = []
 
     def image_processing(
         self,
@@ -60,7 +62,8 @@ class ImageData(object):
         angles_r,
         labels,
         filename_t,
-        angles_g
+        angles_g,
+        side
     ):
         """ Process input images.
 
@@ -71,6 +74,7 @@ class ImageData(object):
         labels: int, subject id. (deprecated!)
         filename_t: str, path of target image.
         angles_g: list, gaze direction of target image.
+        side: str, 'left' or 'right'.
 
         Returns
         -------
@@ -79,6 +83,7 @@ class ImageData(object):
         labels: labels.
         image_t: tensor, float32, normalized target image.
         angles_g: angles_g.
+        side: str, 'left' or 'right'.
 
         """
 
@@ -106,7 +111,7 @@ class ImageData(object):
         image = _to_image(filename)
         image_t = _to_image(filename_t)
 
-        return image, angles_r, labels, image_t, angles_g
+        return image, angles_r, labels, image_t, angles_g, side
 
     def preprocess(self):
 
@@ -140,7 +145,8 @@ class ImageData(object):
                         self.train_labels.append(subject_id - 1)
                         self.train_images_t.append(str(image_generated_path))
                         self.train_angles_g.append([yaw_generated, pitch_generated])
-                    
+                        self.train_sides.append(eye_type)
+
                     if split == "test":
                         if image_reference_path == image_generated_path:
                             continue
@@ -150,6 +156,7 @@ class ImageData(object):
                         self.test_labels.append(subject_id - 1)
                         self.test_images_t.append(str(image_generated_path))
                         self.test_angles_g.append([yaw_generated, pitch_generated])
+                        self.test_sides.append(eye_type)
 
 
 if __name__ == "__main__":
