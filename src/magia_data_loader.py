@@ -1,5 +1,6 @@
 # Dataloader.
 
+import math
 import os
 from pathlib import Path
 
@@ -129,14 +130,14 @@ class ImageData(object):
 
             for i in range(len_group):
                 row_reference = group.iloc[i]
-                pitch_reference = row_reference["pitch"] / self.pitch_scale
-                yaw_reference = row_reference["yaw"] / self.yaw_scale
+                pitch_reference = math.degrees(row_reference["pitch"]) / self.pitch_scale
+                yaw_reference = math.degrees(row_reference["yaw"]) / self.yaw_scale
                 image_reference_path = self.root_path / row_reference["image_path"]
                 
                 for j in range(len_group):
                     row_generated = group.iloc[j]
-                    pitch_generated = row_generated["pitch"] / self.pitch_scale
-                    yaw_generated = row_generated["yaw"] / self.yaw_scale
+                    pitch_generated = math.degrees(row_generated["pitch"]) / self.pitch_scale
+                    yaw_generated = math.degrees(row_generated["yaw"]) / self.yaw_scale
                     image_generated_path = self.root_path / row_generated["image_path"]
 
                     if split == "train":
