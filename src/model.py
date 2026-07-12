@@ -370,9 +370,9 @@ class Model(object):
                 tar_dir = os.path.join(imgs_dir, 'targets')
                 gene_dir = os.path.join(imgs_dir, 'genes')
                 real_dir = os.path.join(imgs_dir, 'reals')
-                os.makedirs(tar_dir)
-                os.makedirs(gene_dir)
-                os.makedirs(real_dir)
+                os.makedirs(tar_dir, exist_ok=True)
+                os.makedirs(gene_dir, exist_ok=True)
+                os.makedirs(real_dir, exist_ok=True)
 
                 def save_image_png(img_array, filepath):
                     """Save image in PNG format (lossless).
@@ -400,7 +400,7 @@ class Model(object):
                         delta = angular_error(a_t, a_r)
 
                         for j in range(real_imgs.shape[0]):
-                            fn = f"[subject_id={labels_test[j]+1}][ref_side={sides_test[j].decode()}][origin_yaw={int(a_r[j][0])}][origin_pitch={int(a_r[j][1])}][target_yaw={int(a_t[j][0])}][target_pitch={int(a_t[j][1])}].png"
+                            fn = f"[subject_id={labels_test[j]+1}][ref_side={sides_test[j].decode()}][origin_yaw={round(a_r[j][0])}][origin_pitch={round(a_r[j][1])}][target_yaw={round(a_t[j][0])}][target_pitch={round(a_t[j][1])}].png"
                             save_image_png(target_imgs[j], os.path.join(tar_dir, fn))
                             save_image_png(fake_imgs[j], os.path.join(gene_dir, fn))
                             save_image_png(real_imgs[j], os.path.join(real_dir, fn))
