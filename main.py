@@ -15,6 +15,19 @@ parser.add_argument('--mode', type=str, default='train',
 parser.add_argument('--batch_size', type=int, default=32,
                     help='batch size')
 parser.add_argument('--data_path', type=str, help='path of faces')
+parser.add_argument('--dataset', type=str, default='magia',
+                    choices=['magia', 'columbia', 'xgaze'],
+                    help='dataset loader to use')
+parser.add_argument('--metadata_path', type=str, default=None,
+                    help='path of metadata csv')
+parser.add_argument('--image_dir', type=str, default=None,
+                    help='root dir for image paths in metadata')
+parser.add_argument('--max_train_samples', type=int, default=None,
+                    help='maximum xgaze train records')
+parser.add_argument('--max_eval_samples', type=int, default=20,
+                    help='maximum xgaze preview records per split')
+parser.add_argument('--min_lightness', type=float, default=0.3,
+                    help='minimum xgaze lightness filter')
 
 # optimizer params
 parser.add_argument('--optimizer', type=str, default='adam',
@@ -53,7 +66,7 @@ if params.mode == 'train':
     if not os.path.exists(params.log_dir):
         os.mkdir(params.log_dir)
     else:
-        raise FileExistsError("log_dir is existed!")
+        raise FileExistsError(f"log_dir is existed: {params.log_dir}")
     model.train()
 
 elif params.mode == 'eval':

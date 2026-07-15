@@ -1,7 +1,5 @@
 # Dataloader.
 
-import math
-import os
 from pathlib import Path
 
 import tensorflow as tf
@@ -17,10 +15,10 @@ class ImageData(object):
     def __init__(self,
             load_size,
             channels,
-            data_path, # useless
+            data_path,
             ids, # useless
-            root_path: Path=Path(os.environ["DATA_ROOT"]),
-            metadata_path: Path=Path("metadata.csv"),
+            root_path=None,
+            metadata_path=None,
             pitch_scale: float=10.0,
             yaw_scale: float=15.0
         ):
@@ -38,8 +36,20 @@ class ImageData(object):
 
         self.load_size = load_size
         self.channels = channels
+        metadata_path = Path(metadata_path) if metadata_path else None
+        if root_path is None:
+            if metadata_path is not None and metadata_path.parent != Path("."):
+                root_path = metadata_path.parent
+                metadata_path = Path(metadata_path.name)
+            elif data_path and (Path(data_path) / "metadata.csv").exists():
+                root_path = data_path
+            elif data_path:
+                root_path = data_path
+            else:
+                raise ValueError("metadata loader requires --data_path or --metadata_path")
+
         self.root_path = Path(root_path)
-        self.metadata_path = Path(metadata_path)
+        self.metadata_path = metadata_path or Path("metadata.csv")
         self.pitch_scale = pitch_scale
         self.yaw_scale = yaw_scale
 
@@ -130,14 +140,14 @@ class ImageData(object):
 
             for i in range(len_group):
                 row_reference = group.iloc[i]
-                pitch_reference = math.degrees(row_reference["pitch"]) / self.pitch_scale
-                yaw_reference = math.degrees(row_reference["yaw"]) / self.yaw_scale
+                pitch_reference = float(row_reference["pitch"])
+                yaw_reference = float(row_reference["yaw"])
                 image_reference_path = self.root_path / row_reference["image_path"]
                 
                 for j in range(len_group):
                     row_generated = group.iloc[j]
-                    pitch_generated = math.degrees(row_generated["pitch"]) / self.pitch_scale
-                    yaw_generated = math.degrees(row_generated["yaw"]) / self.yaw_scale
+                    pitch_generated = float(row_generated["pitch"])
+                    yaw_generated = float(row_generated["yaw"])
                     image_generated_path = self.root_path / row_generated["image_path"]
 
                     if split == "train":

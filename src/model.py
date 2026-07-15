@@ -12,8 +12,6 @@ from tqdm import tqdm
 
 from src.archs import discriminator, generator, vgg_16
 from PIL import Image
-# from src.data_loader import ImageData
-from src.magia_data_loader import ImageData
 from utils.ops import l1_loss, content_loss, style_loss, angular_error
 
 
@@ -83,10 +81,56 @@ class Model(object):
 
         hps = self.params
 
-        image_data_class = ImageData(load_size=hps.image_size,
-                                     channels=3,
-                                     data_path=hps.data_path,
-                                     ids=hps.ids)
+        dataset_name = getattr(hps, 'dataset', 'magia')
+        if dataset_name == 'xgaze':
+            from src.xgaze_data_loader import ImageData
+
+            image_data_class = ImageData(
+                load_size=hps.image_size,
+                channels=3,
+                data_path=hps.data_path,
+                ids=hps.ids,
+                metadata_path=getattr(hps, 'metadata_path', None),
+                image_dir=getattr(hps, 'image_dir', None),
+                max_train_samples=getattr(hps, 'max_train_samples', None),
+                max_eval_samples=getattr(hps, 'max_eval_samples', 20),
+                min_lightness=getattr(hps, 'min_lightness', None))
+            image_data_class.preprocess()
+
+            train_dataset = image_data_class.make_dataset(
+                'train', hps.batch_size)
+            valid_dataset = image_data_class.make_dataset(
+                'val', hps.batch_size)
+            test_dataset = image_data_class.make_dataset(
+                'test', hps.batch_size)
+
+            train_dataset_iterator = train_dataset.make_one_shot_iterator()
+            valid_dataset = valid_dataset.make_one_shot_iterator()
+            test_dataset_iterator = test_dataset.make_one_shot_iterator()
+
+            return (train_dataset_iterator,
+                    valid_dataset,
+                    test_dataset_iterator,
+                    image_data_class.train_size)
+
+        if dataset_name in ['columbia', 'magia']:
+            from src.columbia_data_loader import ImageData
+        else:
+            from src.data_loader import ImageData
+
+        if dataset_name in ['columbia', 'magia']:
+            image_data_class = ImageData(
+                load_size=hps.image_size,
+                channels=3,
+                data_path=hps.data_path,
+                ids=hps.ids,
+                metadata_path=getattr(hps, 'metadata_path', None),
+                root_path=getattr(hps, 'image_dir', None))
+        else:
+            image_data_class = ImageData(load_size=hps.image_size,
+                                         channels=3,
+                                         data_path=hps.data_path,
+                                         ids=hps.ids)
         image_data_class.preprocess()
 
         train_dataset_num = len(image_data_class.train_images)
@@ -395,12 +439,20 @@ class Model(object):
                             [self.x_test_r, self.x_test_t, x_fake,
                              self.angles_test_r, self.angles_test_g, self.labels_test,
                              self.sides_test])
-                        a_t = a_t * np.array([15, 10])
-                        a_r = a_r * np.array([15, 10])
-                        delta = angular_error(a_t, a_r)
+                        if getattr(hps, 'dataset', 'magia') in ['magia', 'columbia', 'xgaze']:
+                            a_t_for_name = np.degrees(a_t)
+                            a_r_for_name = np.degrees(a_r)
+                        else:
+                            a_t_for_name = a_t * np.array([15, 10])
+                            a_r_for_name = a_r * np.array([15, 10])
+                        delta = angular_error(a_t_for_name, a_r_for_name)
 
                         for j in range(real_imgs.shape[0]):
-                            fn = f"[subject_id={labels_test[j]+1}][ref_side={sides_test[j].decode()}][origin_yaw={round(a_r[j][0])}][origin_pitch={round(a_r[j][1])}][target_yaw={round(a_t[j][0])}][target_pitch={round(a_t[j][1])}].png"
+                            if getattr(hps, 'dataset', 'magia') == 'xgaze':
+                                subject_id = labels_test[j].decode()
+                            else:
+                                subject_id = labels_test[j] + 1
+                            fn = f"[subject_id={subject_id}][ref_side={sides_test[j].decode()}][origin_yaw={round(a_r_for_name[j][0])}][origin_pitch={round(a_r_for_name[j][1])}][target_yaw={round(a_t_for_name[j][0])}][target_pitch={round(a_t_for_name[j][1])}].png"
                             save_image_png(target_imgs[j], os.path.join(tar_dir, fn))
                             save_image_png(fake_imgs[j], os.path.join(gene_dir, fn))
                             save_image_png(real_imgs[j], os.path.join(real_dir, fn))
