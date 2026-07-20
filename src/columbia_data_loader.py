@@ -159,9 +159,6 @@ class ImageData(object):
                         self.train_sides.append(eye_type)
 
                     if split == "test":
-                        if image_reference_path == image_generated_path:
-                            continue
-
                         self.test_images.append(str(image_reference_path))
                         self.test_angles_r.append([yaw_reference, pitch_reference])
                         self.test_labels.append(subject_id - 1)

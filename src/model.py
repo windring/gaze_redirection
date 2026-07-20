@@ -2,6 +2,7 @@
 
 from __future__ import division
 
+import csv
 import os
 import logging
 import numpy as np
@@ -76,6 +77,39 @@ class Model(object):
         self.init_op = tf.group(tf.global_variables_initializer(),
                                 tf.local_variables_initializer())
 
+    @staticmethod
+    def _image_stem(image_path):
+        return os.path.splitext(os.path.basename(str(image_path)))[0]
+
+    def _manifest_record(self, image_path, angles, label, side):
+        subject_id = label
+        if not isinstance(subject_id, str):
+            subject_id = int(subject_id) + 1
+        return {
+            'subject_id': subject_id,
+            'eye_type': side,
+            'image_stem': self._image_stem(image_path),
+            'image_path': image_path,
+            'pitch': float(angles[1]),
+            'yaw': float(angles[0]),
+        }
+
+    def _manifest_pairs_from_image_data(self, image_data):
+        pairs = []
+        for index in range(len(image_data.test_images)):
+            source_row = self._manifest_record(
+                image_data.test_images[index],
+                image_data.test_angles_r[index],
+                image_data.test_labels[index],
+                image_data.test_sides[index])
+            target_row = self._manifest_record(
+                image_data.test_images_t[index],
+                image_data.test_angles_g[index],
+                image_data.test_labels[index],
+                image_data.test_sides[index])
+            pairs.append((source_row, target_row))
+        return pairs
+
     def data_loader(self):
         """ load traing and testing dataset """
 
@@ -96,6 +130,7 @@ class Model(object):
                 max_eval_samples=getattr(hps, 'max_eval_samples', 20),
                 min_lightness=getattr(hps, 'min_lightness', None))
             image_data_class.preprocess()
+            self.eval_manifest_pairs = image_data_class.test_pairs
 
             train_dataset = image_data_class.make_dataset(
                 'train', hps.batch_size)
@@ -132,6 +167,11 @@ class Model(object):
                                          data_path=hps.data_path,
                                          ids=hps.ids)
         image_data_class.preprocess()
+        if dataset_name in ['columbia', 'magia']:
+            self.eval_manifest_pairs = self._manifest_pairs_from_image_data(
+                image_data_class)
+        else:
+            self.eval_manifest_pairs = []
 
         train_dataset_num = len(image_data_class.train_images)
         test_dataset_num = len(image_data_class.test_images)
@@ -431,32 +471,87 @@ class Model(object):
                     img_pil = Image.fromarray(img_array)
                     img_pil.save(filepath, format='PNG')
 
+                def row_stem(row):
+                    return row.get('image_stem') or self._image_stem(row['image_path'])
+
+                manifest_path = os.path.join(imgs_dir, 'manifest.csv')
+                manifest_fields = [
+                    'index', 'subject_id', 'eye_type',
+                    'source_stem', 'target_stem',
+                    'source_image_path', 'target_image_path',
+                    'generated_path', 'target_saved_path', 'source_saved_path',
+                    'source_pitch', 'source_yaw', 'target_pitch', 'target_yaw',
+                ]
+                manifest_pairs = getattr(self, 'eval_manifest_pairs', [])
+                manifest_required = getattr(hps, 'dataset', 'magia') in ['columbia', 'xgaze']
+                manifest_index = 0
+
                 try:
-                    i = 0
-                    while True:
-                        (real_imgs, target_imgs, fake_imgs,
-                         a_r, a_t, labels_test, sides_test) = test_sess.run(
-                            [self.x_test_r, self.x_test_t, x_fake,
-                             self.angles_test_r, self.angles_test_g, self.labels_test,
-                             self.sides_test])
-                        if getattr(hps, 'dataset', 'magia') in ['magia', 'columbia', 'xgaze']:
-                            a_t_for_name = np.degrees(a_t)
-                            a_r_for_name = np.degrees(a_r)
-                        else:
-                            a_t_for_name = a_t * np.array([15, 10])
-                            a_r_for_name = a_r * np.array([15, 10])
-                        delta = angular_error(a_t_for_name, a_r_for_name)
+                    with open(manifest_path, 'w', newline='') as manifest_file:
+                        writer = csv.DictWriter(
+                            manifest_file,
+                            fieldnames=manifest_fields)
+                        writer.writeheader()
 
-                        for j in range(real_imgs.shape[0]):
-                            if getattr(hps, 'dataset', 'magia') == 'xgaze':
-                                subject_id = labels_test[j].decode()
+                        i = 0
+                        while True:
+                            (real_imgs, target_imgs, fake_imgs,
+                             a_r, a_t, labels_test, sides_test) = test_sess.run(
+                                [self.x_test_r, self.x_test_t, x_fake,
+                                 self.angles_test_r, self.angles_test_g, self.labels_test,
+                                 self.sides_test])
+                            if getattr(hps, 'dataset', 'magia') in ['magia', 'columbia', 'xgaze']:
+                                a_t_for_name = np.degrees(a_t)
+                                a_r_for_name = np.degrees(a_r)
                             else:
-                                subject_id = labels_test[j] + 1
-                            fn = f"[subject_id={subject_id}][ref_side={sides_test[j].decode()}][origin_yaw={round(a_r_for_name[j][0])}][origin_pitch={round(a_r_for_name[j][1])}][target_yaw={round(a_t_for_name[j][0])}][target_pitch={round(a_t_for_name[j][1])}].png"
-                            save_image_png(target_imgs[j], os.path.join(tar_dir, fn))
-                            save_image_png(fake_imgs[j], os.path.join(gene_dir, fn))
-                            save_image_png(real_imgs[j], os.path.join(real_dir, fn))
+                                a_t_for_name = a_t * np.array([15, 10])
+                                a_r_for_name = a_r * np.array([15, 10])
+                            delta = angular_error(a_t_for_name, a_r_for_name)
 
-                        i = i + 1
+                            for j in range(real_imgs.shape[0]):
+                                if getattr(hps, 'dataset', 'magia') == 'xgaze':
+                                    subject_id = labels_test[j].decode()
+                                else:
+                                    subject_id = labels_test[j] + 1
+                                fn = f"[subject_id={subject_id}][ref_side={sides_test[j].decode()}][origin_yaw={round(a_r_for_name[j][0])}][origin_pitch={round(a_r_for_name[j][1])}][target_yaw={round(a_t_for_name[j][0])}][target_pitch={round(a_t_for_name[j][1])}].png"
+                                target_saved_path = os.path.join(tar_dir, fn)
+                                generated_path = os.path.join(gene_dir, fn)
+                                source_saved_path = os.path.join(real_dir, fn)
+                                save_image_png(target_imgs[j], target_saved_path)
+                                save_image_png(fake_imgs[j], generated_path)
+                                save_image_png(real_imgs[j], source_saved_path)
+
+                                if manifest_index >= len(manifest_pairs):
+                                    if manifest_required:
+                                        raise RuntimeError(
+                                            'manifest pair count is smaller than evaluated samples: '
+                                            '%d pairs for sample index %d' % (
+                                                len(manifest_pairs), manifest_index))
+                                else:
+                                    source_row, target_row = manifest_pairs[manifest_index]
+                                    writer.writerow({
+                                        'index': manifest_index,
+                                        'subject_id': source_row['subject_id'],
+                                        'eye_type': source_row['eye_type'],
+                                        'source_stem': row_stem(source_row),
+                                        'target_stem': row_stem(target_row),
+                                        'source_image_path': source_row['image_path'],
+                                        'target_image_path': target_row['image_path'],
+                                        'generated_path': generated_path,
+                                        'target_saved_path': target_saved_path,
+                                        'source_saved_path': source_saved_path,
+                                        'source_pitch': source_row['pitch'],
+                                        'source_yaw': source_row['yaw'],
+                                        'target_pitch': target_row['pitch'],
+                                        'target_yaw': target_row['yaw'],
+                                    })
+                                manifest_index += 1
+
+                            i = i + 1
                 except tf.errors.OutOfRangeError:
+                    if manifest_required and manifest_index != len(manifest_pairs):
+                        raise RuntimeError(
+                            'manifest pair count does not match evaluated samples: '
+                            '%d pairs, %d evaluated samples' % (
+                                len(manifest_pairs), manifest_index))
                     logging.info("quanti_eval finished.")

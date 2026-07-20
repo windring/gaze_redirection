@@ -92,8 +92,7 @@ class ImageData(object):
         pairs = []
         for index, ref in enumerate(records):
             group = groups[(ref["subject_id"], ref["eye_type"])]
-            candidates = [candidate for candidate in group if candidate != index]
-            target = records[rng.choice(candidates)] if candidates else ref
+            target = records[rng.choice(group)]
             pairs.append((ref, target))
         return pairs
 
@@ -180,8 +179,7 @@ class ImageData(object):
             for index in indices:
                 ref = self.train_records[index]
                 group = groups[(ref["subject_id"], ref["eye_type"])]
-                candidates = [candidate for candidate in group if candidate != index]
-                target = self.train_records[rng.choice(candidates)] if candidates else ref
+                target = self.train_records[rng.choice(group)]
                 yield self._example(ref, target)
 
     def _fixed_generator(self, pairs, repeat):

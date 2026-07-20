@@ -47,17 +47,17 @@ eval-columbia-128:
 		--vgg_path $(VGG)
 
 train-columbia-256:
-	CUDA_VISIBLE_DEVICES=2 $(PY) main.py \
+	CUDA_VISIBLE_DEVICES=0 $(PY) main.py \
 		--mode train \
 		--dataset columbia \
 		--data_path /dev/shm/columbia/256x256 \
 		--log_dir ./log/columbia_256x256 \
 		--image_size 256 \
-		--batch_size 32 \
+		--batch_size 48 \
 		--vgg_path $(VGG)
 
 eval-columbia-256:
-	CUDA_VISIBLE_DEVICES=2 $(PY) main.py \
+	CUDA_VISIBLE_DEVICES=0 $(PY) main.py \
 		--mode eval \
 		--dataset columbia \
 		--data_path /dev/shm/columbia/256x256 \
