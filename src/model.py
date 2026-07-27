@@ -509,11 +509,26 @@ class Model(object):
                             delta = angular_error(a_t_for_name, a_r_for_name)
 
                             for j in range(real_imgs.shape[0]):
-                                if getattr(hps, 'dataset', 'magia') == 'xgaze':
-                                    subject_id = labels_test[j].decode()
+                                dataset_name = getattr(hps, 'dataset', 'magia')
+                                if manifest_index >= len(manifest_pairs):
+                                    if manifest_required:
+                                        raise RuntimeError(
+                                            'manifest pair count is smaller than evaluated samples: '
+                                            '%d pairs for sample index %d' % (
+                                                len(manifest_pairs), manifest_index))
+                                    source_row = target_row = None
+                                else:
+                                    source_row, target_row = manifest_pairs[manifest_index]
+
+                                if dataset_name == 'xgaze':
+                                    subject_id = source_row['subject_id']
+                                    ref_side = source_row['eye_type']
+                                    source_stem = row_stem(source_row)
+                                    target_stem = row_stem(target_row)
+                                    fn = f"[index={manifest_index:06d}][subject_id={subject_id}][ref_side={ref_side}][ref={source_stem}][target={target_stem}][origin_yaw={round(a_r_for_name[j][0])}][origin_pitch={round(a_r_for_name[j][1])}][target_yaw={round(a_t_for_name[j][0])}][target_pitch={round(a_t_for_name[j][1])}].png"
                                 else:
                                     subject_id = labels_test[j] + 1
-                                fn = f"[subject_id={subject_id}][ref_side={sides_test[j].decode()}][origin_yaw={round(a_r_for_name[j][0])}][origin_pitch={round(a_r_for_name[j][1])}][target_yaw={round(a_t_for_name[j][0])}][target_pitch={round(a_t_for_name[j][1])}].png"
+                                    fn = f"[subject_id={subject_id}][ref_side={sides_test[j].decode()}][origin_yaw={round(a_r_for_name[j][0])}][origin_pitch={round(a_r_for_name[j][1])}][target_yaw={round(a_t_for_name[j][0])}][target_pitch={round(a_t_for_name[j][1])}].png"
                                 target_saved_path = os.path.join(tar_dir, fn)
                                 generated_path = os.path.join(gene_dir, fn)
                                 source_saved_path = os.path.join(real_dir, fn)
@@ -521,14 +536,7 @@ class Model(object):
                                 save_image_png(fake_imgs[j], generated_path)
                                 save_image_png(real_imgs[j], source_saved_path)
 
-                                if manifest_index >= len(manifest_pairs):
-                                    if manifest_required:
-                                        raise RuntimeError(
-                                            'manifest pair count is smaller than evaluated samples: '
-                                            '%d pairs for sample index %d' % (
-                                                len(manifest_pairs), manifest_index))
-                                else:
-                                    source_row, target_row = manifest_pairs[manifest_index]
+                                if source_row is not None:
                                     writer.writerow({
                                         'index': manifest_index,
                                         'subject_id': source_row['subject_id'],
