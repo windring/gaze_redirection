@@ -1,5 +1,6 @@
 # Dataloader.
 
+import math
 from pathlib import Path
 
 import tensorflow as tf
@@ -81,10 +82,10 @@ class ImageData(object):
         Parameters
         ----------
         filename: str, path of input image.
-        angles_r: list, gaze direction of input image.
+        angles_r: list, gaze direction of input image in degrees.
         labels: int, subject id. (deprecated!)
         filename_t: str, path of target image.
-        angles_g: list, gaze direction of target image.
+        angles_g: list, gaze direction of target image in degrees.
         side: str, 'left' or 'right'.
 
         Returns
@@ -140,14 +141,14 @@ class ImageData(object):
 
             for i in range(len_group):
                 row_reference = group.iloc[i]
-                pitch_reference = float(row_reference["pitch"])
-                yaw_reference = float(row_reference["yaw"])
+                pitch_reference = math.degrees(float(row_reference["pitch"]))
+                yaw_reference = math.degrees(float(row_reference["yaw"]))
                 image_reference_path = self.root_path / row_reference["image_path"]
                 
                 for j in range(len_group):
                     row_generated = group.iloc[j]
-                    pitch_generated = float(row_generated["pitch"])
-                    yaw_generated = float(row_generated["yaw"])
+                    pitch_generated = math.degrees(float(row_generated["pitch"]))
+                    yaw_generated = math.degrees(float(row_generated["yaw"]))
                     image_generated_path = self.root_path / row_generated["image_path"]
 
                     if split == "train":

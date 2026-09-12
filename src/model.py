@@ -51,8 +51,16 @@ class Model(object):
         self.x_g = generator(self.x_r, self.angles_g)
         self.x_recon = generator(self.x_g, self.angles_r, reuse=True)
 
-        self.angles_valid_g = tf.random_uniform(
-            [params.batch_size, 2], minval=-1.0, maxval=1.0)
+        if getattr(params, 'dataset', 'magia') in ['columbia', 'magia']:
+            random_yaw = tf.random_uniform(
+                [params.batch_size], minval=-15.0, maxval=15.0)
+            random_pitch = tf.random_uniform(
+                [params.batch_size], minval=-10.0, maxval=10.0)
+            self.angles_valid_g = tf.stack(
+                [random_yaw, random_pitch], axis=1)
+        else:
+            self.angles_valid_g = tf.random_uniform(
+                [params.batch_size, 2], minval=-1.0, maxval=1.0)
 
         self.x_valid_g = generator(self.x_valid_r, self.angles_valid_g,
                                    reuse=True)
@@ -500,16 +508,19 @@ class Model(object):
                                 [self.x_test_r, self.x_test_t, x_fake,
                                  self.angles_test_r, self.angles_test_g, self.labels_test,
                                  self.sides_test])
-                            if getattr(hps, 'dataset', 'magia') in ['magia', 'columbia', 'xgaze']:
+                            dataset_name = getattr(hps, 'dataset', 'magia')
+                            if dataset_name == 'xgaze':
                                 a_t_for_name = np.degrees(a_t)
                                 a_r_for_name = np.degrees(a_r)
+                            elif dataset_name in ['magia', 'columbia']:
+                                a_t_for_name = a_t
+                                a_r_for_name = a_r
                             else:
                                 a_t_for_name = a_t * np.array([15, 10])
                                 a_r_for_name = a_r * np.array([15, 10])
                             delta = angular_error(a_t_for_name, a_r_for_name)
 
                             for j in range(real_imgs.shape[0]):
-                                dataset_name = getattr(hps, 'dataset', 'magia')
                                 if manifest_index >= len(manifest_pairs):
                                     if manifest_required:
                                         raise RuntimeError(
